@@ -1,0 +1,82 @@
+services:
+  apache:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/apache/Dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+    container_name: chimera-apache
+    ports:
+      - "${APACHE_PORT}:80"
+    depends_on:
+      - mariadb
+      - mongodb
+      - redis
+    networks:
+      - chimera-net
+    restart: unless-stopped
+
+  python:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/python/Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION}
+    container_name: chimera-python
+    # Exponer el puerto 5000 a la red interna
+    ports:
+      - "5000:5000"  # si también querés probarlo directamente en http://localhost:5000
+    depends_on:
+      - mariadb
+      - mongodb
+      - redis
+    networks:
+      - chimera-net
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:${MARIADB_VERSION}
+    container_name: chimera-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - chimera-net
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:${MONGODB_VERSION}
+    container_name: chimera-mongodb
+    ports:
+      - "${MONGODB_PORT}:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - chimera-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    container_name: chimera-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - chimera-net
+    restart: unless-stopped
+
+networks:
+  chimera-net:
+    driver: bridge
+
+volumes:
+  mariadb-data:
+  mongodb-data:
+  redis-data:
